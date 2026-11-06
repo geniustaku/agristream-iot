@@ -1,0 +1,56 @@
+@model List<DroneImage>
+@{
+    ViewData["Title"] = "Drone imagery";
+}
+<header class="page-head">
+    <div>
+        <h1>Drone imagery</h1>
+        <p>Uploads go to Azure Blob Storage. The blob trigger then writes an audit row to Azure Table Storage.</p>
+    </div>
+</header>
+
+<section class="card">
+    <form asp-action="Upload" method="post" enctype="multipart/form-data" class="upload-row">
+        <div>
+            <label for="file">Image file</label>
+            <input id="file" type="file" name="file" accept="image/jpeg,image/png,image/webp" required />
+        </div>
+        <div>
+            <label for="fieldId">Field</label>
+            <select id="fieldId" name="fieldId">
+                @foreach (var field in Farm.Fields)
+                {
+                    <option value="@field.Id">@field.Id, @field.Name</option>
+                }
+            </select>
+        </div>
+        <button class="button" type="submit">Upload image</button>
+    </form>
+</section>
+
+@if (Model.Count == 0)
+{
+    <section class="card"><p class="muted">No drone images have been uploaded yet.</p></section>
+}
+<section class="gallery">
+    @foreach (var image in Model)
+    {
+        var processed = image.Status == "Processed";
+        <article class="tile">
+            <img src="@image.ImageUrl" alt="Drone image @image.OriginalName" loading="lazy" />
+            <div class="tile-body">
+                <div class="tile-title">
+                    <strong>@image.OriginalName</strong>
+                    <span class="pill @(processed ? "pill-ok" : "pill-wait")">@image.Status</span>
+                </div>
+                <dl>
+                    <dt>Field</dt><dd>@image.FieldId</dd>
+                    <dt>Uploaded by</dt><dd>@image.UploadedBy</dd>
+                    <dt>Size</dt><dd>@((image.SizeBytes / 1024d).ToString("0")) KB</dd>
+                    <dt>Uploaded</dt><dd>@image.UploadedUtc.ToString("dd MMM HH:mm:ss") UTC</dd>
+                    <dt>Audited</dt><dd>@(image.ProcessedUtc?.ToString("dd MMM HH:mm:ss") ?? "Pending")</dd>
+                </dl>
+            </div>
+        </article>
+    }
+</section>

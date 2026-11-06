@@ -1,0 +1,38 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Sign in";
+    Layout = "_Bare";
+}
+<div class="login">
+    <section class="login-story">
+        <div class="brand"><span class="brand-mark"></span><span>AgriStream <small>IoT</small></span></div>
+        <div>
+            <h1>Every field. Every sensor. One view.</h1>
+            <p>Soil telemetry, drone imagery and irrigation control for commercial farms, built to hold up through peak daylight surges.</p>
+        </div>
+        <ul>
+            <li><strong>Telemetry</strong> served through Azure Functions</li>
+            <li><strong>Imagery</strong> audited on upload</li>
+            <li><strong>Irrigation</strong> queued, never lost</li>
+        </ul>
+    </section>
+
+    <section class="login-form">
+        <form asp-action="Login" method="post">
+            <h2>Sign in</h2>
+            <p class="muted">Use the account assigned to your farm role.</p>
+            <div asp-validation-summary="ModelOnly" class="alert alert-bad"></div>
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <label asp-for="Username"></label>
+            <input asp-for="Username" autocomplete="username" autofocus />
+            <span asp-validation-for="Username" class="field-error"></span>
+
+            <label asp-for="Password"></label>
+            <input asp-for="Password" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="field-error"></span>
+
+            <button type="submit" class="button button-full">Sign in</button>
+        </form>
+    </section>
+</div>

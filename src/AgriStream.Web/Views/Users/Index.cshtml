@@ -1,0 +1,52 @@
+@model CreateUserViewModel
+@{
+    ViewData["Title"] = "Users and roles";
+    var users = (List<AppUser>)ViewBag.Users;
+}
+<header class="page-head">
+    <div>
+        <h1>Users and roles</h1>
+        <p>Accounts and roles read live from Azure SQL Database. Passwords are stored only as salted hashes.</p>
+    </div>
+</header>
+
+<div class="two-col">
+    <section class="card">
+        <div class="card-head"><h2>Accounts</h2><span class="muted">@users.Count users</span></div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Username</th><th>Full name</th><th>Role</th><th>Password hash</th><th>Created (UTC)</th></tr></thead>
+                <tbody>
+                    @foreach (var user in users)
+                    {
+                        <tr>
+                            <td><code>@user.Username</code></td>
+                            <td>@user.FullName</td>
+                            <td><span class="pill pill-idle">@user.Role?.Name</span></td>
+                            <td><code>@user.Password[..12]&hellip;</code></td>
+                            <td>@user.CreatedUtc.ToString("dd MMM yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-head"><h2>Add a user</h2></div>
+        <form asp-action="Create" method="post" class="stack">
+            <label asp-for="Username"></label>
+            <input asp-for="Username" />
+            <span asp-validation-for="Username" class="field-error"></span>
+            <label asp-for="FullName">Full name</label>
+            <input asp-for="FullName" />
+            <span asp-validation-for="FullName" class="field-error"></span>
+            <label asp-for="Password"></label>
+            <input asp-for="Password" />
+            <span asp-validation-for="Password" class="field-error"></span>
+            <label asp-for="RoleId">Role</label>
+            <select asp-for="RoleId" asp-items="ViewBag.Roles"></select>
+            <button class="button" type="submit">Create user</button>
+        </form>
+    </section>
+</div>

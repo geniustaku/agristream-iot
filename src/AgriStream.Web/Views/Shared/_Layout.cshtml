@@ -1,0 +1,79 @@
+@*
+    AgriStream IoT - main page layout
+    Author: Genius Mhirizhonga (ST10541838)
+    Module: CLDV7112 - Cloud Development B
+*@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    string Active(string name) => controller == name ? "active" : "";
+    var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name;
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+    var initials = string.Concat((fullName ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => p[0]));
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] | AgriStream IoT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <a class="brand" asp-controller="Dashboard" asp-action="Index">
+                <span class="brand-mark"></span>
+                <span>AgriStream <small>IoT</small></span>
+            </a>
+
+            <nav>
+                <span class="nav-label">Operations</span>
+                <a class="@Active("Dashboard")" asp-controller="Dashboard" asp-action="Index">Field dashboard</a>
+                <a class="@Active("Irrigation")" asp-controller="Irrigation" asp-action="Index">Irrigation control</a>
+                @if (User.IsInRole(Roles.Agronomist) || User.IsInRole(Roles.Admin))
+                {
+                    <a class="@Active("Drone")" asp-controller="Drone" asp-action="Index">Drone imagery</a>
+                }
+                @if (User.IsInRole(Roles.Admin))
+                {
+                    <span class="nav-label">Administration</span>
+                    <a class="@Active("Users")" asp-controller="Users" asp-action="Index">Users and roles</a>
+                    <a class="@Active("System")" asp-controller="System" asp-action="Index">System status</a>
+                }
+            </nav>
+
+            <div class="sidebar-foot">
+                <div class="user-row">
+                    <span class="avatar">@initials</span>
+                    <div><strong>@fullName</strong><span>@role</span></div>
+                </div>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    <button type="submit" class="link-button">Sign out</button>
+                </form>
+            </div>
+        </aside>
+
+        <main class="content">
+            @if (TempData["Message"] is string message)
+            {
+                <div class="alert alert-ok">@message</div>
+            }
+            @if (TempData["Error"] is string error)
+            {
+                <div class="alert alert-bad">@error</div>
+            }
+
+            @RenderBody()
+
+            <footer class="page-foot">
+                Served by instance <code>@Context.Items["Instance"]</code>
+                &middot; Azure South Africa North
+                &middot; Genius Mhirizhonga, ST10541838
+            </footer>
+        </main>
+    </div>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

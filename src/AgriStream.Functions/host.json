@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "logging": {
+    "logLevel": { "default": "Information" },
+    "applicationInsights": {
+      "samplingSettings": { "isEnabled": true, "excludedTypes": "Request" }
+    }
+  },
+  "extensions": {
+    "queues": {
+      "messageEncoding": "none",
+      "maxDequeueCount": 5,
+      "batchSize": 4,
+      "newBatchThreshold": 2
+    }
+  }
+}

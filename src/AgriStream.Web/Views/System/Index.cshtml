@@ -1,0 +1,36 @@
+@model SystemViewModel
+@{
+    ViewData["Title"] = "System status";
+    var healthy = Model.Checks.Count(c => c.Healthy);
+}
+<header class="page-head">
+    <div>
+        <h1>System status</h1>
+        <p>Each check below runs live against the Azure service when this page opens.</p>
+    </div>
+</header>
+
+<section class="kpis">
+    <div class="kpi"><span>Services healthy</span><strong>@healthy<em>/ @Model.Checks.Count</em></strong></div>
+    <div class="kpi"><span>Answering instance</span><strong class="small"><code>@Model.Instance</code></strong></div>
+    <div class="kpi"><span>Region</span><strong class="small">@Model.Region</strong></div>
+</section>
+
+<section class="card">
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Service</th><th>Result</th><th>Response</th><th>State</th></tr></thead>
+            <tbody>
+                @foreach (var check in Model.Checks)
+                {
+                    <tr>
+                        <td><strong>@check.Service</strong></td>
+                        <td>@check.Detail</td>
+                        <td>@check.Milliseconds ms</td>
+                        <td><span class="pill @(check.Healthy ? "pill-ok" : "pill-bad")">@(check.Healthy ? "Connected" : "Failed")</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

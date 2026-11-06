@@ -1,0 +1,67 @@
+@model List<Device>
+@{
+    ViewData["Title"] = "Irrigation control";
+    var canTrigger = User.IsInRole(Roles.Farmer) || User.IsInRole(Roles.Admin);
+}
+<header class="page-head">
+    <div>
+        <h1>Irrigation control</h1>
+        <p>A command goes through the POST function onto a Storage Queue. The queue trigger then updates this registry in Azure SQL.</p>
+    </div>
+</header>
+
+<section class="flow">
+    <span>Trigger Irrigation</span><i></i><span>HTTP POST function</span><i></i><span>Storage Queue</span><i></i><span>Queue function</span><i></i><span>Azure SQL registry</span>
+</section>
+
+<section class="card">
+    <div class="table-wrap">
+        <table id="devices">
+            <thead><tr><th>Device</th><th>Name</th><th>Field</th><th>Status</th><th>Last command</th><th>Updated (UTC)</th>@if (canTrigger) { <th>Command</th> }</tr></thead>
+            <tbody>
+                @foreach (var device in Model)
+                {
+                    <tr data-device="@device.DeviceId">
+                        <td><code>@device.DeviceId</code></td>
+                        <td>@device.Name</td>
+                        <td>@device.FieldId</td>
+                        <td><span class="pill @(device.OperationalStatus == "Irrigating" ? "pill-ok" : "pill-idle")" data-status>@device.OperationalStatus</span></td>
+                        <td data-last>@(device.LastCommand ?? "None yet")</td>
+                        <td data-updated>@device.LastUpdatedUtc.ToString("HH:mm:ss")</td>
+                        @if (canTrigger)
+                        {
+                            <td>
+                                <form asp-action="Trigger" method="post" class="inline-form">
+                                    <input type="hidden" name="deviceId" value="@device.DeviceId" />
+                                    <input type="number" name="minutes" value="30" min="5" max="240" aria-label="Minutes" />
+                                    <button class="button button-small" name="action" value="Start" type="submit">Trigger Irrigation</button>
+                                    <button class="button button-small button-quiet" name="action" value="Stop" type="submit">Stop</button>
+                                </form>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        // Keeps statuses live so the queue function's update shows without a page refresh.
+        async function refreshDevices() {
+            const response = await fetch('@Url.Action("Status")');
+            if (!response.ok) return;
+            for (const device of await response.json()) {
+                const row = document.querySelector(`tr[data-device="${device.deviceId}"]`);
+                if (!row) continue;
+                const pill = row.querySelector('[data-status]');
+                pill.textContent = device.operationalStatus;
+                pill.className = 'pill ' + (device.operationalStatus === 'Irrigating' ? 'pill-ok' : 'pill-idle');
+                row.querySelector('[data-last]').textContent = device.lastCommand ?? 'None yet';
+                row.querySelector('[data-updated]').textContent = device.updated;
+            }
+        }
+        setInterval(refreshDevices, 5000);
+    </script>
+}

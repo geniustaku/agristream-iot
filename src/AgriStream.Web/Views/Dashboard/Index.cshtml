@@ -1,0 +1,105 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Field dashboard";
+
+    // Averages each time step across the sensors, then draws it as an SVG line.
+    var series = Model.Readings
+        .GroupBy(r => new DateTime(r.RecordedUtc.Year, r.RecordedUtc.Month, r.RecordedUtc.Day, r.RecordedUtc.Hour, r.RecordedUtc.Minute, 0))
+        .OrderBy(g => g.Key)
+        .Select(g => new { Time = g.Key, Moisture = g.Average(r => r.SoilMoisture), Air = g.Average(r => r.AirTemperature) })
+        .ToList();
+
+    const double width = 760, height = 200, pad = 28;
+    string Line(Func<int, double> value)
+    {
+        if (series.Count < 2) return string.Empty;
+        var values = Enumerable.Range(0, series.Count).Select(value).ToList();
+        var min = values.Min() - 1;
+        var max = values.Max() + 1;
+        return string.Join(" ", values.Select((v, i) =>
+            $"{pad + (i * (width - (2 * pad)) / (series.Count - 1)):0.0},{height - pad - ((v - min) / (max - min) * (height - (2 * pad))):0.0}"));
+    }
+}
+
+<header class="page-head">
+    <div>
+        <h1>@Model.Field.Name <span class="crop">@Model.Field.Crop</span></h1>
+        <p>Latest telemetry from Azure Table Storage, delivered by the HTTP GET function in @Model.FunctionMilliseconds ms.</p>
+    </div>
+    <div class="head-actions">
+        <div class="segmented">
+            @foreach (var field in Farm.Fields)
+            {
+                <a class="@(field.Id == Model.Field.Id ? "on" : "")" asp-action="Index" asp-route-fieldId="@field.Id">@field.Id</a>
+            }
+        </div>
+        @if (User.IsInRole(Roles.Agronomist) || User.IsInRole(Roles.Admin))
+        {
+            <form asp-action="SimulateBurst" method="post">
+                <input type="hidden" name="fieldId" value="@Model.Field.Id" />
+                <button class="button button-quiet" type="submit">Simulate sensor burst</button>
+            </form>
+        }
+    </div>
+</header>
+
+@if (Model.Error is not null)
+{
+    <div class="alert alert-bad">@Model.Error</div>
+}
+
+<section class="kpis">
+    <div class="kpi"><span>Soil moisture</span><strong>@Model.AverageMoisture.ToString("0.0")<em>%</em></strong></div>
+    <div class="kpi"><span>Soil temperature</span><strong>@Model.AverageSoilTemperature.ToString("0.0")<em>&deg;C</em></strong></div>
+    <div class="kpi"><span>Humidity</span><strong>@Model.AverageHumidity.ToString("0.0")<em>%</em></strong></div>
+    <div class="kpi"><span>Lowest battery</span><strong>@Model.LowestBattery<em>%</em></strong></div>
+    <div class="kpi"><span>Active sensors</span><strong>@Model.SensorCount</strong></div>
+</section>
+
+<section class="card">
+    <div class="card-head">
+        <h2>Moisture and air temperature</h2>
+        <div class="legend"><span class="dot dot-a"></span>Soil moisture <span class="dot dot-b"></span>Air temperature</div>
+    </div>
+    @if (series.Count > 1)
+    {
+        <svg class="chart" viewBox="0 0 @width @height" role="img" aria-label="Line chart of soil moisture and air temperature">
+            @for (var i = 0; i < 4; i++)
+            {
+                var y = pad + (i * (height - (2 * pad)) / 3);
+                <line x1="@pad" x2="@(width - pad)" y1="@y" y2="@y" class="grid" />
+            }
+            <polyline points="@Line(i => series[i].Moisture)" class="line-a" />
+            <polyline points="@Line(i => series[i].Air)" class="line-b" />
+            <text x="@pad" y="@(height - 8)" class="axis">@series.First().Time.ToString("dd MMM HH:mm") UTC</text>
+            <text x="@(width - pad)" y="@(height - 8)" class="axis" text-anchor="end">@series.Last().Time.ToString("dd MMM HH:mm") UTC</text>
+        </svg>
+    }
+    else
+    {
+        <p class="muted">Not enough readings to draw a chart yet.</p>
+    }
+</section>
+
+<section class="card">
+    <div class="card-head"><h2>Latest readings</h2><span class="muted">Newest first</span></div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Recorded (UTC)</th><th>Sensor</th><th>Moisture</th><th>Soil temp</th><th>Air temp</th><th>Humidity</th><th>Battery</th></tr></thead>
+            <tbody>
+                @foreach (var reading in Model.Readings.Take(10))
+                {
+                    <tr>
+                        <td>@reading.RecordedUtc.ToString("dd MMM HH:mm:ss")</td>
+                        <td><code>@reading.SensorId</code></td>
+                        <td>@reading.SoilMoisture.ToString("0.0")%</td>
+                        <td>@reading.SoilTemperature.ToString("0.0")&deg;C</td>
+                        <td>@reading.AirTemperature.ToString("0.0")&deg;C</td>
+                        <td>@reading.Humidity.ToString("0.0")%</td>
+                        <td>@reading.BatteryLevel%</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
